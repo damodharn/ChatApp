@@ -1,6 +1,10 @@
 
 import os
 import datetime
+from dotenv import load_dotenv, find_dotenv
+from pathlib import *
+load_dotenv(find_dotenv())
+env_path = Path('.')/'.env'
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -31,6 +35,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'accounts',
+    'rest_framework',
     'rest_framework_swagger'
 ]
 
@@ -70,31 +75,13 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 DATABASES = {
     'default': {
             'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            'NAME': 'BridgeLabz',
-            'USER': 'postgres',
-            'PASSWORD': 'pass123',
+            'NAME': os.getenv("DATABASES_NAME"),
+            'USER': os.getenv("DATABASES_USER"),
+            'PASSWORD': os.getenv("DATABASES_PASSWORD"),
             'HOST': 'localhost',
             'PORT': '5432'
     }
 }
-
-# DATABASES = {
-#     'default': {
-#             'ENGINE': 'django.db.backends.postgresql_psycopg2',
-#             'NAME': 'chatapp_db',
-#             'USER': 'chatuser2',
-#             'PASSWORD': 'pass123',
-#             'HOST': 'localhost',
-#             'PORT': '5432'
-#     }
-# }
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-#     }
-# }
 
 
 # Password validation
@@ -116,9 +103,9 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 EMAIL_USE_TLS = True
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = 'testddn712@gmail.com'
-EMAIL_HOST_PASSWORD = 'pass12312'
+EMAIL_HOST = os.getenv('EMAIL_HOST')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_PORT = 587
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
@@ -135,6 +122,12 @@ USE_L10N = True
 
 USE_TZ = True
 
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES':
+        ('rest_framework.permissions.IsAuthenticatedOrReadOnly',),
+
+}
+
 JWT_AUTH = {
 
     'JWT_VERIFY': True,
@@ -143,6 +136,23 @@ JWT_AUTH = {
     'JWT_AUTH_HEADER_PREFIX': 'JWT',
 
 }
+
+SWAGGER_SETTINGS = {
+    'USE_SESSION_AUTH': False,
+    'api_version': '0.1',
+    'enabled_methods': [
+        'get',
+        'post'
+    ],
+    'SECURITY_DEFINATIONS': {
+        "api_key": {
+            "type": "apikey",
+            "name": "Authorization",
+            "in": "header"
+        },
+    },
+}
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
