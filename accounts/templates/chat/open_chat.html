@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OpenChat</title>
+</head>
+<body>
+        <p> Click the button to start Chat-app </p>
+        <form action="/chat/" method="post">
+             {% csrf_token %}
+              <button type="submit"> Start Chat </button> <br>
+        </form>
+</body>
+</html>

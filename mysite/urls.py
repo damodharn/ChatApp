@@ -10,5 +10,5 @@ urlpatterns = [
     path('chat/', include('chat.urls')),
     path('admin/', admin.site.urls),
     path('', include('accounts.urls')),
-    path('schema_view/', schema_view)
+    path('/schema_view/', schema_view)
 ]
