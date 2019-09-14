@@ -1,6 +1,7 @@
 import re
 from django.core.validators import validate_email, ValidationError, RegexValidator, EmailValidator
 import os
+from .models import ChatUser
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.http import HttpResponse
@@ -11,6 +12,7 @@ from django.shortcuts import render
 from django.core.exceptions import ObjectDoesNotExist
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import EmailMessage
+from django.conf import settings
 
 
 @csrf_exempt
@@ -62,73 +64,81 @@ def login(request):
 @csrf_exempt
 def signup(request):
     if request.method == "POST":
-        print("Here in signup POST")
         if request.POST['password'] == request.POST['password2']:
             '''if both the passwords matched.
             check if a user already  exists.'''
+            # try:
+            username = request.POST['username']
+            x = re.search("\s", username)
+            if (len(username) < 4) or x:  # Validating username
+                return HttpResponse("enter valid username; with at least 4 char and no whitespace")
+            email = request.POST['email']
             try:
-                email = request.POST['email']
-                try:
-                    validate_email(email)  # Validating email id
-                except ValidationError as e:
-                    return HttpResponse(str(e))
-                username = request.POST['username']
-                x = re.search("\s", username)
-                if (len(username) < 4) or x:  # Validating username
-                    return HttpResponse("enter valid username; with at least 4 char and no whitespace")
-                user = User.objects.get(username=request.POST['username'])  # Checking if user is present or not.
-                if user:
-                    return HttpResponse("Username has already been taken")
-                user = User.objects.get(email=request.POST['email'])
+                validate_email(email)  # Validating email id
+            except ValidationError as e:
+                return HttpResponse(str(e))
+            ''' Checking if user with
+             this username and email is already present or not.'''
+            try:
+                user = User.objects.get(username=request.POST['username'])
                 if user:
                     return render(request, 'chat/display.html', {
-                        'message': "Email-id already been there"
+                        'message': 'Username already been there.'
+                                   '...try with different username'
                     })
             except ObjectDoesNotExist:
-                '''If User doesn't exist 
-                Create a new User.'''
-                user = User.objects.create_user(username=request.POST['username'], password=request.POST['password'],
-                                                first_name=request.POST['first_name'],
-                                                last_name=request.POST['last_name'], email=request.POST['email'])
-                user.is_active = False  # making is_active false until the email is verified.
-                user.save()
-                '''Generating jwt token.'''
-                # creating payload
-                payload = {
-                    'uid': user.id,
-                    'email': user.email,
-                    'username': user.username
-                }
-                token = jwt.encode(payload, os.getenv("SECRET_KEY"), algorithm='HS256').decode('utf-8')  # encoding jwt token
-                current_site = get_current_site(request)
-                mail_subject = 'Activate your account by clicking below link.'
-                message = render_to_string('chat/account_active_email.html', {
-                    'user': user.username,
-                    'domain': current_site.domain,
-                    'token': token
-                }
-                                           )
-                to_email = user.email
-                email = EmailMessage(
-                    mail_subject, message, to=[to_email]
-                )
-                email.send()
-                return render(request, 'chat/display.html', {
-                    'message': 'Successfully Registered !!'
-                               'Now confirm your email to activate an account'
-                })
+                try:
+                    user1 = User.objects.get(email=request.POST['email'])
+                    if user1:
+                        return render(request, 'chat/display.html', {
+                            'message': 'Email-id has already been taken.'
+                        })
+                except ObjectDoesNotExist:
+                    '''If User doesn't exist 
+                                    Create a new User.'''
+                    user = User.objects.create_user(username=request.POST['username'], password=request.POST['password']
+                                                    ,
+                                                    first_name=request.POST['first_name'],
+                                                    last_name=request.POST['last_name'], email=request.POST['email'])
+                    user.is_active = False  # making is_active false until the email is verified.
+                    user.save()
+                    '''Generating jwt token.'''
+                    # creating payload
+                    payload = {
+                        'uid': user.id,
+                        'email': user.email,
+                        'username': user.username
+                    }
+                    token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256').decode('utf-8')  # encoding jwt token
+                    current_site = get_current_site(request)
+                    mail_subject = 'Activate your account by clicking below link.'
+                    message = render_to_string('chat/account_active_email.html', {
+                        'user': user.username,
+                        'domain': current_site.domain,
+                        'token': token
+                    }
+                                               )
+                    to_email = user.email
+                    email = EmailMessage(
+                        mail_subject, message, to=[to_email]
+                    )
+                    email.send()
+                    return render(request, 'chat/display.html', {
+                        'message': 'Successfully Registered !!'
+                                   'Now confirm your email to activate an account'
+                    })
         else:
             return render(request, 'chat/display.html', {
                 'message': "Password does not matched. "
             })
     else:
-        return HttpResponse('Error: Something went wrong.')
+        return HttpResponse('Error: Invalid Request(GET).')
 
 
 @csrf_exempt
 def activate(request, token):
     try:
-        payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithm='HS256')  # .decode('utf-8')
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithm='HS256')  # .decode('utf-8')
         uid = payload['uid']  # getting the user id from the payload
         user = User.objects.get(id=uid)  # getting the user through the id
         if not user:
@@ -169,7 +179,7 @@ def forget(request):
                 }
 
                 mail_subject = "Forgot password"  # mail subject
-                token = jwt.encode(payload, os.getenv("SECRET_KEY"), algorithm='HS256').decode('utf-8')  # generating the token
+                token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256').decode('utf-8')  # generating the token
                 message = render_to_string('chat/forget_password.html', {
                     'user': user.username,
                     "domain": current_site,
@@ -189,7 +199,7 @@ def forget(request):
 @csrf_exempt
 def reset(request, token):
     try:
-        payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithm='HS256')
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithm='HS256')
         email = payload['email']
         password = password2 = payload['password']
         if password == password2:

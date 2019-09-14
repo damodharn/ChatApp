@@ -122,10 +122,17 @@ USE_L10N = True
 
 USE_TZ = True
 
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES':
-        ('rest_framework.permissions.IsAuthenticatedOrReadOnly',),
+# REST_FRAMEWORK = {
+#     'DEFAULT_PERMISSION_CLASSES':
+#         ('rest_framework.permissions.IsAuthenticatedOrReadOnly',),
+#
+# }
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        ' djforge_redis_multitokens.tokens_auth.CachedTokenAuthentication',
+    ),
+    # your other DRF configurations goes below
 }
 
 JWT_AUTH = {
@@ -168,3 +175,23 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'redis_cache.RedisCache',
+#         'LOCATION': 'localhost:6379',
+#     },
+# }
+CACHES = {
+     # other Redis db definitions above
+
+     # tokens db definition
+     'tokens': {
+         'BACKEND': 'redis_cache.RedisCache',
+         'LOCATION': 'localhost:6379',
+         'OPTIONS': {
+             'DB': 2,
+         },
+         'TIMEOUT': None,
+     }
+ }
